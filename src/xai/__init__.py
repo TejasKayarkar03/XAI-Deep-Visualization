@@ -8,6 +8,15 @@ from .filters import (
     extract_layer_weights,
     visualize_conv_filters
 )
+from .gradcam import (
+    GradCAM,
+    overlay_heatmap_on_image
+)
+from .saliency import (
+    compute_vanilla_saliency,
+    compute_smoothgrad_saliency,
+    saliency_to_image
+)
 
 __all__ = [
     "FeatureExtractor",
@@ -15,5 +24,10 @@ __all__ = [
     "generate_feature_grid",
     "get_layer_statistics",
     "extract_layer_weights",
-    "visualize_conv_filters"
+    "visualize_conv_filters",
+    "GradCAM",
+    "overlay_heatmap_on_image",
+    "compute_vanilla_saliency",
+    "compute_smoothgrad_saliency",
+    "saliency_to_image"
 ]
