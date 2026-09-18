@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Explainable AI (XAI) Problem-Based Learning: Deep Feature Visualization study exploring internal CNN representations, feature maps, Grad-CAM, and activation maximization.">
+    <title>Deep Feature Visualization Studio | Explainable AI PBL</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Background Ambient Glows -->
+    <div class="glow-orb orb-primary"></div>
+    <div class="glow-orb orb-secondary"></div>
+    <div class="glow-orb orb-accent"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="navbar">
+            <div class="brand-group">
+                <div class="brand-icon">
+                    <i data-lucide="eye"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>Deep Feature Visualization <span class="badge-pbl">PBL Study</span></h1>
+                    <p class="subtitle">Explainable AI (XAI) &bull; Internal Representation Analysis &bull; CNN Interpretability</p>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="model-status-text">DeepVisualNet Active</span>
+                </div>
+                <button id="btn-quick-tour" class="btn btn-secondary" title="View Project Overview">
+                    <i data-lucide="help-circle"></i> PBL Guide
+                </button>
+                <a href="https://github.com/TejasKayarkar03/XAI-Deep-Visualization" target="_blank" class="btn btn-primary" id="btn-repo-link">
+                    <i data-lucide="github"></i> GitHub Repo
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="main-grid">
+            <!-- Left Panel: Input & Controls -->
+            <section class="panel control-panel">
+                <div class="panel-header">
+                    <h2><i data-lucide="sliders"></i> Input & Controls</h2>
+                    <span class="step-tag">Step 1</span>
+                </div>
+
+                <!-- Sample Selector -->
+                <div class="form-group">
+                    <label class="section-label">Select Reference Benchmark Image</label>
+                    <div class="samples-carousel" id="samples-carousel">
+                        <!-- Populated by JS -->
+                        <div class="loading-placeholder">Loading sample bank...</div>
+                    </div>
+                </div>
+
+                <!-- Custom Upload -->
+                <div class="form-group">
+                    <label class="section-label">Or Upload Custom Image</label>
+                    <div class="upload-dropzone" id="upload-dropzone">
+                        <i data-lucide="upload-cloud" class="upload-icon"></i>
+                        <p class="upload-text">Drag & drop or <span class="highlight">browse</span></p>
+                        <span class="upload-subtext">PNG, JPG, WebP (auto-resized to 32x32)</span>
+                        <input type="file" id="file-input" accept="image/*" class="file-input-hidden">
+                    </div>
+                </div>
+
+                <!-- Active Image Preview & Predictions -->
+                <div class="input-preview-card" id="input-preview-container">
+                    <div class="preview-header">
+                        <span class="preview-label">Active Input</span>
+                        <span id="predicted-badge" class="badge-accent">Calculating...</span>
+                    </div>
+                    <div class="preview-content">
+                        <div class="image-wrapper">
+                            <img id="input-preview-img" src="/static/samples/airplane.png" alt="Current input preview">
+                        </div>
+                        <div class="prediction-bars" id="prediction-bars-container">
+                            <!-- Dynamic top-3 predictions -->
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <!-- Layer Selection -->
+                <div class="form-group">
+                    <label class="section-label">Inspection Layer (Hierarchical Depth)</label>
+                    <div class="layer-selector-group" id="layer-buttons-container">
+                        <button class="layer-btn active" data-layer="conv1" id="layer-btn-conv1">
+                            <span class="layer-name">Conv1</span>
+                            <span class="layer-tag">Edges & Primitives</span>
+                        </button>
+                        <button class="layer-btn" data-layer="conv2" id="layer-btn-conv2">
+                            <span class="layer-name">Conv2</span>
+                            <span class="layer-tag">Textures & Shapes</span>
+                        </button>
+                        <button class="layer-btn" data-layer="conv3" id="layer-btn-conv3">
+                            <span class="layer-name">Conv3</span>
+                            <span class="layer-tag">Object Parts</span>
+                        </button>
+                        <button class="layer-btn" data-layer="conv4" id="layer-btn-conv4">
+                            <span class="layer-name">Conv4</span>
+                            <span class="layer-tag">Semantic Classes</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Channel Slider -->
+                <div class="form-group">
+                    <div class="slider-label-row">
+                        <label for="channel-slider" class="section-label">Channel / Filter Index</label>
+                        <span class="slider-value" id="channel-value-display">Ch #0</span>
+                    </div>
+                    <input type="range" id="channel-slider" min="0" max="31" value="0" class="custom-range">
+                    <div class="slider-ticks">
+                        <span>0</span>
+                        <span id="slider-max-display">31</span>
+                    </div>
+                </div>
+
+                <!-- Colormap & Saliency Selector -->
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label for="colormap-select" class="section-label">Colormap</label>
+                        <select id="colormap-select" class="custom-select">
+                            <option value="viridis">Viridis (Perceptual)</option>
+                            <option value="plasma">Plasma (High-Heat)</option>
+                            <option value="magma">Magma (Dark Core)</option>
+                            <option value="inferno">Inferno</option>
+                            <option value="jet">Jet (Classic)</option>
+                        </select>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="saliency-mode-select" class="section-label">Saliency Method</label>
+                        <select id="saliency-mode-select" class="custom-select">
+                            <option value="vanilla">Vanilla Backprop</option>
+                            <option value="smoothgrad">SmoothGrad (10x)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Trigger Button -->
+                <button id="btn-run-analysis" class="btn btn-action-glow">
+                    <i data-lucide="zap"></i> Recompute Visualizations
+                </button>
+            </section>
+
+            <!-- Center Panel: Visual Feature Studio -->
+            <section class="panel main-display-panel">
+                <!-- Layer Info Banner -->
+                <div class="layer-info-card" id="layer-info-banner">
+                    <div class="info-icon"><i data-lucide="layers"></i></div>
+                    <div class="info-body">
+                        <h3 id="layer-title-text">Conv Layer 1 (Low-Level Primitives)</h3>
+                        <p id="layer-desc-text">Extracts low-level sensory features: oriented Gabor edges, color boundaries, high-frequency corners, and light-dark gradients.</p>
+                    </div>
+                    <div class="layer-stats-pills" id="layer-stats-pills">
+                        <div class="stat-pill"><span class="stat-num" id="stat-res">32x32</span><span class="stat-lbl">Resolution</span></div>
+                        <div class="stat-pill"><span class="stat-num" id="stat-sparsity">0.0%</span><span class="stat-lbl">ReLU Sparsity</span></div>
+                    </div>
+                </div>
+
+                <!-- Feature Maps & Filter Kernels Section -->
+                <div class="tab-container">
+                    <div class="tab-nav">
+                        <button class="tab-btn active" data-tab="tab-feature-maps" id="tab-btn-features">
+                            <i data-lucide="grid"></i> Feature Maps (Activations)
+                        </button>
+                        <button class="tab-btn" data-tab="tab-attribution" id="tab-btn-attribution">
+                            <i data-lucide="crosshair"></i> Grad-CAM & Saliency
+                        </button>
+                        <button class="tab-btn" data-tab="tab-dreaming" id="tab-btn-dreaming">
+                            <i data-lucide="sparkles"></i> Activation Maximization
+                        </button>
+                        <button class="tab-btn" data-tab="tab-kernels" id="tab-btn-kernels">
+                            <i data-lucide="cpu"></i> Learned Filter Kernels
+                        </button>
+                    </div>
+
+                    <!-- TAB 1: Feature Maps -->
+                    <div class="tab-content active" id="tab-feature-maps">
+                        <div class="features-dual-grid">
+                            <!-- Focused Channel View -->
+                            <div class="card visual-card">
+                                <div class="card-header">
+                                    <div class="card-title-group">
+                                        <h3 id="single-channel-title">Selected Channel Activation</h3>
+                                        <span class="card-subtitle">Spatial firing intensity of the chosen filter</span>
+                                    </div>
+                                    <span class="badge-layer" id="badge-active-layer">conv1 #0</span>
+                                </div>
+                                <div class="card-body centered">
+                                    <div class="image-frame glow-cyan">
+                                        <img id="img-single-channel" src="" alt="Single channel activation heatmap">
+                                    </div>
+                                </div>
+                                <div class="card-footer" id="channel-insight-text">
+                                    Notice how early layers fire intensely on edge transitions, silhouette borders, and contrast zones.
+                                </div>
+                            </div>
+
+                            <!-- Layer Grid Overview -->
+                            <div class="card visual-card">
+                                <div class="card-header">
+                                    <div class="card-title-group">
+                                        <h3>Top-16 Activated Channels Grid</h3>
+                                        <span class="card-subtitle">Energy-ranked channel activation matrix</span>
+                                    </div>
+                                    <span class="badge-count">16 Filters</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="image-frame-full">
+                                        <img id="img-feature-grid" src="" alt="Feature activation grid">
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    Each square represents what an individual filter detects across the spatial canvas.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: Grad-CAM & Saliency -->
+                    <div class="tab-content" id="tab-attribution">
+                        <div class="attribution-dual-grid">
+                            <!-- Grad-CAM Card -->
+                            <div class="card visual-card">
+                                <div class="card-header">
+                                    <div class="card-title-group">
+                                        <h3>Grad-CAM Attention Map</h3>
+                                        <span class="card-subtitle">Gradient-weighted coarse spatial localization</span>
+                                    </div>
+                                    <span class="badge-accent" id="gradcam-class-badge">Target: Airplane</span>
+                                </div>
+                                <div class="card-body centered">
+                                    <div class="image-frame glow-purple">
+                                        <img id="img-gradcam" src="" alt="Grad-CAM overlay heatmap">
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <strong>How it works:</strong> Backpropagates target class gradients to Conv4 and weights feature maps to show where the network looks.
+                                </div>
+                            </div>
+
+                            <!-- Saliency Map Card -->
+                            <div class="card visual-card">
+                                <div class="card-header">
+                                    <div class="card-title-group">
+                                        <h3>Pixel-Level Saliency Attribution</h3>
+                                        <span class="card-subtitle">Input gradient magnitude |&part;y / &part;x|</span>
+                                    </div>
+                                    <span class="badge-secondary" id="saliency-mode-badge">Vanilla Backprop</span>
+                                </div>
+                                <div class="card-body centered">
+                                    <div class="image-frame glow-amber">
+                                        <img id="img-saliency" src="" alt="Pixel saliency map">
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <strong>Interpretation:</strong> Highlights exact input pixels where a tiny perturbation would cause the steepest change in model confidence.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: Activation Maximization (Feature Dreaming) -->
+                    <div class="tab-content" id="tab-dreaming">
+                        <div class="dreaming-container">
+                            <div class="dream-sidebar card">
+                                <h3><i data-lucide="sparkles"></i> Feature Synthesis Lab</h3>
+                                <p class="section-desc">Generate synthetic images from pure Gaussian noise using gradient ascent to reveal what neurons "dream" of.</p>
+
+                                <div class="form-group">
+                                    <label class="section-label">Synthesis Target</label>
+                                    <div class="radio-toggle-group">
+                                        <label class="radio-option">
+                                            <input type="radio" name="dream-target" value="channel" checked id="radio-dream-channel">
+                                            <span>Current Layer Channel</span>
+                                        </label>
+                                        <label class="radio-option">
+                                            <input type="radio" name="dream-target" value="class" id="radio-dream-class">
+                                            <span>Target Class Prototype</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="form-group" id="dream-class-select-group" style="display: none;">
+                                    <label for="dream-class-select" class="section-label">Target Class</label>
+                                    <select id="dream-class-select" class="custom-select">
+                                        <!-- Populated by JS -->
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <div class="slider-label-row">
+                                        <label for="dream-steps-slider" class="section-label">Optimization Iterations</label>
+                                        <span class="slider-value" id="dream-steps-display">40 Steps</span>
+                                    </div>
+                                    <input type="range" id="dream-steps-slider" min="15" max="80" value="40" step="5" class="custom-range">
+                                </div>
+
+                                <button id="btn-trigger-dream" class="btn btn-dream-glow">
+                                    <i data-lucide="wand-2"></i> Synthesize Visual Pattern
+                                </button>
+                            </div>
+
+                            <div class="dream-display card">
+                                <div class="card-header">
+                                    <div class="card-title-group">
+                                        <h3>Synthesized Feature Stimulus</h3>
+                                        <span class="card-subtitle" id="dream-meta-subtitle">Optimized input image maximizing channel response</span>
+                                    </div>
+                                    <span class="badge-accent" id="dream-status-badge">Ready</span>
+                                </div>
+                                <div class="card-body centered">
+                                    <div class="dream-image-wrapper" id="dream-wrapper">
+                                        <img id="img-dream-result" src="" alt="Synthesized activation maximization result">
+                                        <div class="dream-spinner" id="dream-spinner" style="display: none;">
+                                            <div class="loader-circle"></div>
+                                            <p>Optimizing noise tensor via gradient ascent...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <strong>PBL Research Insight:</strong> Early layer syntheses yield high-frequency directional stripes; deeper layers reveal complex repeating textures and emergent archetype forms.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: Learned Filter Kernels -->
+                    <div class="tab-content" id="tab-kernels">
+                        <div class="card visual-card">
+                            <div class="card-header">
+                                <div class="card-title-group">
+                                    <h3>Direct Convolutional Kernel Weights</h3>
+                                    <span class="card-subtitle">Spatial weights (3x3 spatial matrices) learned during training</span>
+                                </div>
+                                <span class="badge-layer" id="badge-kernel-layer">conv1 Kernels</span>
+                            </div>
+                            <div class="card-body centered">
+                                <div class="image-frame-full">
+                                    <img id="img-filter-weights" src="" alt="Convolutional weights matrix">
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <strong>Biological Analogy:</strong> Notice how Conv1 filters naturally converge to spatial Gabor wavelets and color-opponency filters, mimicking the primary visual cortex (V1) in biological vision.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Educational PBL Walkthrough Drawer -->
+                <div class="pbl-theory-card">
+                    <div class="theory-header">
+                        <i data-lucide="book-open"></i>
+                        <h3>Problem-Based Learning Theory: The Visual Hierarchy in Deep CNNs</h3>
+                    </div>
+                    <div class="theory-grid">
+                        <div class="theory-col">
+                            <h4>1. Receptive Fields & Depth</h4>
+                            <p>As layers deepen, receptive fields expand exponentially. Early filters observe local 3x3 pixel neighborhoods; late layers integrate global contextual relationships across the entire image.</p>
+                        </div>
+                        <div class="theory-col">
+                            <h4>2. Representation Disentanglement</h4>
+                            <p>ReLU non-linearities drive activation sparsity (typically 40-70%), carving orthogonal representations that separate distinct visual semantics and reject background noise.</p>
+                        </div>
+                        <div class="theory-col">
+                            <h4>3. Faithfulness vs Interpretability</h4>
+                            <p>Grad-CAM localizes high-level discriminative regions; Saliency highlights pixel boundaries. Combining both verifies whether the model reasons via true morphology or spurious shortcuts.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Explainable AI (XAI) Problem-Based Learning Study &bull; Deep Feature Visualization &bull; Built with PyTorch, Flask &amp; Modern Vanilla CSS</p>
+        </footer>
+    </div>
+
+    <!-- Interactive Script -->
+    <script src="/static/js/app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
