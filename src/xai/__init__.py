@@ -17,6 +17,9 @@ from .saliency import (
     compute_smoothgrad_saliency,
     saliency_to_image
 )
+from .activation_maximization import (
+    maximize_feature_activation
+)
 
 __all__ = [
     "FeatureExtractor",
@@ -29,5 +32,6 @@ __all__ = [
     "overlay_heatmap_on_image",
     "compute_vanilla_saliency",
     "compute_smoothgrad_saliency",
-    "saliency_to_image"
+    "saliency_to_image",
+    "maximize_feature_activation"
 ]
