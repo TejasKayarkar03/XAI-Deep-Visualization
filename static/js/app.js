@@ -27,6 +27,7 @@ const elements = {
     uploadDropzone: document.getElementById("upload-dropzone"),
     fileInput: document.getElementById("file-input"),
     inputPreviewImg: document.getElementById("input-preview-img"),
+    activeInputName: document.getElementById("active-input-name"),
     predictedBadge: document.getElementById("predicted-badge"),
     predictionBarsContainer: document.getElementById("prediction-bars-container"),
     layerButtons: document.querySelectorAll(".layer-btn"),
@@ -123,6 +124,9 @@ function renderSampleCarousel(samples) {
             state.selectedSample = sample.filename;
             state.customImageBase64 = null;
             elements.inputPreviewImg.src = sample.url;
+            if (elements.activeInputName) {
+                elements.activeInputName.textContent = sample.class_name.charAt(0).toUpperCase() + sample.class_name.slice(1);
+            }
             triggerAnalysis();
         });
 
@@ -260,6 +264,9 @@ function processFile(file) {
         state.selectedSample = null;
         document.querySelectorAll(".sample-item").forEach(s => s.classList.remove("active"));
         elements.inputPreviewImg.src = state.customImageBase64;
+        if (elements.activeInputName) {
+            elements.activeInputName.textContent = file.name ? `Upload (${file.name})` : "Custom Upload";
+        }
         triggerAnalysis();
     };
     reader.readAsDataURL(file);
@@ -309,7 +316,7 @@ function renderAnalysisResults(data) {
     // Predictions
     if (data.predictions && data.predictions.length > 0) {
         const top = data.predictions[0];
-        elements.predictedBadge.textContent = `${top.class_name.toUpperCase()} (${top.percentage})`;
+        elements.predictedBadge.textContent = `Pred: ${top.class_name.toUpperCase()} (${top.percentage})`;
 
         elements.predictionBarsContainer.innerHTML = "";
         data.predictions.slice(0, 3).forEach(pred => {

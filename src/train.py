@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from src.models.cnn_model import DeepVisualNet
-from src.data.dataset import get_cifar10_loaders, CLASS_NAMES
+from src.data.dataset import get_cifar10_loaders, get_synthetic_augmented_loaders, CLASS_NAMES
 
 
 def train_epoch(model: nn.Module, loader: DataLoader, criterion: nn.Module, optimizer: optim.Optimizer, device: torch.device):
@@ -64,8 +64,8 @@ def evaluate(model: nn.Module, loader: DataLoader, criterion: nn.Module, device:
 
 
 def train_model(
-    epochs: int = 5,
-    batch_size: int = 64,
+    epochs: int = 15,
+    batch_size: int = 32,
     lr: float = 0.001,
     dataset_name: str = "synthetic",
     save_path: str = "models/checkpoints/deep_visual_net.pth"
@@ -90,49 +90,9 @@ def train_model(
             dataset_name = "synthetic"
 
     if dataset_name.lower() == "synthetic":
-        print("[Training] Synthesizing structured visual patterns for feature learning...")
-        num_samples = 1500
-        x_data = torch.randn(num_samples, 3, 32, 32) * 0.1
-        y_data = torch.randint(0, len(CLASS_NAMES), (num_samples,))
+        print("[Training] Generating augmented visual pattern dataset...")
+        train_loader, test_loader = get_synthetic_augmented_loaders(batch_size=batch_size, num_reps=80)
 
-        # Inject distinctive visual features per category:
-        # Edge lines, circular spots, diagonal textures, cross-hairs
-        for i in range(num_samples):
-            c = y_data[i].item()
-            grid_y, grid_x = torch.meshgrid(torch.linspace(-1, 1, 32), torch.linspace(-1, 1, 32), indexing="ij")
-            if c == 0:  # Airplane - horizontal wings and vertical body
-                x_data[i, :, 14:18, :] += 0.9
-                x_data[i, :, :, 14:18] += 0.9
-            elif c == 1:  # Automobile - lower box and wheels
-                x_data[i, 0, 16:26, 4:28] += 1.0
-                x_data[i, :, 24:28, 6:12] -= 0.8
-                x_data[i, :, 24:28, 20:26] -= 0.8
-            elif c == 2:  # Bird - diagonal streaks
-                diag = (grid_x + grid_y).abs() < 0.2
-                x_data[i, 1] += diag.float() * 1.2
-            elif c == 3:  # Cat - concentric circles / eyes
-                dist = torch.sqrt(grid_x**2 + grid_y**2)
-                x_data[i, 2] += (dist < 0.5).float() * 1.2
-            elif c == 4:  # Deer - branching vertical lines
-                x_data[i, 1, :, 8:12] += 0.8
-                x_data[i, 1, :, 20:24] += 0.8
-            elif c == 5:  # Dog - center blob with high frequency noise
-                x_data[i, 0] += torch.exp(-(grid_x**2 + grid_y**2) / 0.3) * 1.5
-            elif c == 6:  # Frog - green dominant circular texture
-                x_data[i, 1] += (torch.sin(grid_x * 8) * torch.cos(grid_y * 8) > 0.3).float() * 1.4
-            elif c == 7:  # Horse - elongated oval
-                x_data[i, 0] += ((grid_x**2 / 0.6 + grid_y**2 / 0.2) < 0.8).float() * 1.1
-            elif c == 8:  # Ship - lower horizontal block with cyan tint
-                x_data[i, 1:, 18:28, :] += 1.0
-            elif c == 9:  # Truck - dense grid pattern
-                grid = ((torch.sin(grid_x * 12) > 0) & (torch.cos(grid_y * 12) > 0)).float()
-                x_data[i, :] += grid * 1.0
-
-        val_split = int(num_samples * 0.8)
-        train_ds = TensorDataset(x_data[:val_split], y_data[:val_split])
-        test_ds = TensorDataset(x_data[val_split:], y_data[val_split:])
-        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-        test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)

@@ -104,7 +104,101 @@ def get_cifar10_loaders(data_dir: str = "./data", batch_size: int = 64, download
     return train_loader, test_loader
 
 
-def generate_synthetic_demo_bank(output_dir: str = "./static/samples") -> List[dict]:
+def draw_category_vector(name: str) -> Image.Image:
+    """Renders a high-contrast, visually distinctive archetype for a CIFAR-10 category."""
+    img = Image.new("RGB", (64, 64), color="#1e293b")
+    draw = ImageDraw.Draw(img)
+
+    if name == "airplane":
+        draw.polygon([(32, 6), (28, 52), (36, 52)], fill="#38bdf8")
+        draw.polygon([(32, 24), (6, 40), (58, 40)], fill="#0284c7")
+        draw.polygon([(32, 48), (18, 58), (46, 58)], fill="#0369a1")
+        draw.ellipse([(30, 12), (34, 20)], fill="#e0f2fe")
+    elif name == "automobile":
+        draw.rectangle([(10, 32), (54, 48)], fill="#ef4444")
+        draw.polygon([(18, 32), (24, 20), (40, 20), (46, 32)], fill="#f87171")
+        draw.polygon([(24, 22), (38, 22), (43, 30), (20, 30)], fill="#93c5fd")
+        draw.ellipse([(14, 44), (24, 54)], fill="#0f172a")
+        draw.ellipse([(40, 44), (50, 54)], fill="#0f172a")
+        draw.ellipse([(17, 47), (21, 51)], fill="#e2e8f0")
+        draw.ellipse([(43, 47), (47, 51)], fill="#e2e8f0")
+        draw.rectangle([(50, 36), (54, 40)], fill="#fef08a")
+    elif name == "bird":
+        draw.ellipse([(18, 24), (46, 48)], fill="#eab308")
+        draw.ellipse([(36, 16), (52, 32)], fill="#facc15")
+        draw.polygon([(48, 22), (58, 26), (48, 30)], fill="#f97316")
+        draw.ellipse([(42, 20), (46, 24)], fill="#0f172a")
+        draw.polygon([(20, 28), (34, 28), (14, 42)], fill="#ca8a04")
+        draw.polygon([(18, 36), (6, 44), (16, 48)], fill="#ca8a04")
+    elif name == "cat":
+        draw.ellipse([(16, 22), (48, 52)], fill="#a855f7")
+        draw.polygon([(16, 28), (22, 10), (30, 24)], fill="#c084fc")
+        draw.polygon([(48, 28), (42, 10), (34, 24)], fill="#c084fc")
+        draw.ellipse([(22, 30), (28, 38)], fill="#fef08a")
+        draw.ellipse([(36, 30), (42, 38)], fill="#fef08a")
+        draw.ellipse([(24, 32), (26, 36)], fill="#0f172a")
+        draw.ellipse([(38, 32), (40, 36)], fill="#0f172a")
+        draw.polygon([(30, 40), (34, 40), (32, 43)], fill="#f43f5e")
+    elif name == "deer":
+        draw.polygon([(24, 44), (40, 44), (36, 60), (28, 60)], fill="#92400e")
+        draw.ellipse([(22, 26), (42, 50)], fill="#b45309")
+        draw.line([(26, 26), (14, 10)], fill="#fef3c7", width=2)
+        draw.line([(20, 18), (12, 20)], fill="#fef3c7", width=2)
+        draw.line([(17, 14), (21, 9)], fill="#fef3c7", width=2)
+        draw.line([(38, 26), (50, 10)], fill="#fef3c7", width=2)
+        draw.line([(44, 18), (52, 20)], fill="#fef3c7", width=2)
+        draw.line([(47, 14), (43, 9)], fill="#fef3c7", width=2)
+        draw.ellipse([(15, 25), (23, 31)], fill="#d97706")
+        draw.ellipse([(41, 25), (49, 31)], fill="#d97706")
+        draw.ellipse([(26, 34), (30, 38)], fill="#000000")
+        draw.ellipse([(34, 34), (38, 38)], fill="#000000")
+    elif name == "dog":
+        draw.ellipse([(18, 20), (46, 48)], fill="#ea580c")
+        draw.ellipse([(12, 24), (22, 46)], fill="#c2410c")
+        draw.ellipse([(42, 24), (52, 46)], fill="#c2410c")
+        draw.ellipse([(24, 34), (40, 48)], fill="#ffedd5")
+        draw.ellipse([(29, 36), (35, 42)], fill="#18181b")
+        draw.ellipse([(24, 26), (28, 30)], fill="#18181b")
+        draw.ellipse([(36, 26), (40, 30)], fill="#18181b")
+    elif name == "frog":
+        draw.ellipse([(14, 24), (50, 52)], fill="#10b981")
+        draw.ellipse([(16, 12), (28, 26)], fill="#059669")
+        draw.ellipse([(36, 12), (48, 26)], fill="#059669")
+        draw.ellipse([(19, 15), (25, 23)], fill="#ffffff")
+        draw.ellipse([(39, 15), (45, 23)], fill="#ffffff")
+        draw.ellipse([(21, 17), (24, 21)], fill="#000000")
+        draw.ellipse([(41, 17), (44, 21)], fill="#000000")
+        draw.arc([(22, 34), (42, 44)], start=0, end=180, fill="#047857", width=2)
+    elif name == "horse":
+        draw.polygon([(18, 34), (32, 36), (30, 60), (14, 60)], fill="#78350f")
+        draw.polygon([(20, 20), (32, 16), (44, 32), (38, 48), (24, 38)], fill="#b45309")
+        draw.ellipse([(34, 40), (46, 52)], fill="#92400e")
+        draw.polygon([(28, 16), (32, 8), (36, 16)], fill="#d97706")
+        draw.line([(22, 18), (14, 26)], fill="#451a03", width=3)
+        draw.line([(20, 24), (12, 32)], fill="#451a03", width=3)
+        draw.line([(18, 30), (10, 38)], fill="#451a03", width=3)
+        draw.ellipse([(28, 24), (32, 28)], fill="#000000")
+    elif name == "ship":
+        draw.rectangle([(0, 48), (64, 64)], fill="#0284c7")
+        draw.polygon([(10, 42), (54, 42), (46, 54), (18, 54)], fill="#f8fafc")
+        draw.line([(32, 14), (32, 42)], fill="#78350f", width=2)
+        draw.polygon([(34, 16), (50, 36), (34, 36)], fill="#06b6d4")
+        draw.polygon([(30, 20), (18, 36), (30, 36)], fill="#38bdf8")
+    elif name == "truck":
+        draw.rectangle([(8, 18), (38, 48)], fill="#6366f1")
+        draw.rectangle([(38, 26), (56, 48)], fill="#4f46e5")
+        draw.rectangle([(46, 28), (54, 36)], fill="#c7d2fe")
+        draw.ellipse([(44, 44), (54, 54)], fill="#0f172a")
+        draw.ellipse([(12, 44), (22, 54)], fill="#0f172a")
+        draw.ellipse([(24, 44), (34, 54)], fill="#0f172a")
+        draw.ellipse([(47, 47), (51, 51)], fill="#e2e8f0")
+        draw.ellipse([(15, 47), (19, 51)], fill="#e2e8f0")
+        draw.ellipse([(27, 47), (31, 51)], fill="#e2e8f0")
+
+    return img
+
+
+def generate_synthetic_demo_bank(output_dir: str = "./static/samples", overwrite: bool = True) -> List[dict]:
     """
     Creates a sample bank of reference images for the dashboard so testing can occur
     immediately without waiting for dataset downloads or manual uploads.
@@ -112,55 +206,10 @@ def generate_synthetic_demo_bank(output_dir: str = "./static/samples") -> List[d
     os.makedirs(output_dir, exist_ok=True)
     samples = []
 
-    # Palette of distinctive colors and shapes for each category
-    shapes = {
-        "airplane": ("#38bdf8", "triangle"),
-        "automobile": ("#ef4444", "car_box"),
-        "bird": ("#fbbf24", "oval"),
-        "cat": ("#a855f7", "cat_face"),
-        "deer": ("#84cc16", "horns"),
-        "dog": ("#f97316", "dog_face"),
-        "frog": ("#10b981", "frog_eyes"),
-        "horse": ("#d97706", "horse_silhouette"),
-        "ship": ("#06b6d4", "boat_hull"),
-        "truck": ("#6366f1", "truck_block")
-    }
-
     for idx, name in enumerate(CLASS_NAMES):
         img_path = os.path.join(output_dir, f"{name}.png")
-        if not os.path.exists(img_path):
-            img = Image.new("RGB", (64, 64), color="#1e293b")
-            draw = ImageDraw.Draw(img)
-            color, shape = shapes.get(name, ("#ffffff", "oval"))
-
-            # Draw distinct visual features for the model to detect
-            if shape == "triangle":  # airplane
-                draw.polygon([(32, 10), (14, 52), (50, 52)], fill=color)
-                draw.polygon([(28, 25), (4, 40), (60, 40)], fill="#bae6fd")
-            elif shape == "car_box":  # car
-                draw.rectangle([(12, 30), (52, 50)], fill=color)
-                draw.rectangle([(20, 18), (44, 30)], fill="#fca5a5")
-                draw.ellipse([(16, 46), (26, 56)], fill="#0f172a")
-                draw.ellipse([(38, 46), (48, 56)], fill="#0f172a")
-            elif shape == "cat_face":  # cat
-                draw.ellipse([(16, 20), (48, 52)], fill=color)
-                draw.polygon([(16, 26), (22, 10), (30, 22)], fill="#e9d5ff")
-                draw.polygon([(48, 26), (42, 10), (34, 22)], fill="#e9d5ff")
-                draw.ellipse([(24, 32), (28, 36)], fill="#ffffff")
-                draw.ellipse([(36, 32), (40, 36)], fill="#ffffff")
-            elif shape == "boat_hull":  # ship
-                draw.polygon([(10, 40), (54, 40), (46, 56), (18, 56)], fill=color)
-                draw.rectangle([(30, 20), (34, 40)], fill="#ffffff")
-                draw.polygon([(34, 22), (48, 30), (34, 38)], fill="#e0f2fe")
-            elif shape == "truck_block":  # truck
-                draw.rectangle([(10, 24), (40, 48)], fill=color)
-                draw.rectangle([(40, 32), (54, 48)], fill="#a5b4fc")
-                draw.ellipse([(16, 44), (24, 54)], fill="#0f172a")
-                draw.ellipse([(42, 44), (50, 54)], fill="#0f172a")
-            else:
-                draw.ellipse([(16, 16), (48, 48)], fill=color)
-                draw.rectangle([(26, 26), (38, 38)], fill="#f1f5f9")
-
+        if overwrite or not os.path.exists(img_path):
+            img = draw_category_vector(name)
             img.save(img_path)
 
         samples.append({
@@ -171,3 +220,47 @@ def generate_synthetic_demo_bank(output_dir: str = "./static/samples") -> List[d
         })
 
     return samples
+
+
+def get_synthetic_augmented_loaders(batch_size: int = 32, num_reps: int = 80):
+    """
+    Synthesizes a robust augmented dataset matching the exact preprocessing pipeline
+    so the model learns rich, distinct hierarchical features for all 10 categories.
+    """
+    base_images = [draw_category_vector(c) for c in CLASS_NAMES]
+
+    aug_train_tx = transforms.Compose([
+        transforms.Resize((32, 32)),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomRotation(degrees=10),
+        transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.15),
+        transforms.ToTensor(),
+        transforms.Normalize(NORM_MEAN, NORM_STD)
+    ])
+
+    aug_test_tx = transforms.Compose([
+        transforms.Resize((32, 32)),
+        transforms.ToTensor(),
+        transforms.Normalize(NORM_MEAN, NORM_STD)
+    ])
+
+    train_x, train_y = [], []
+    for _ in range(num_reps):
+        for idx in range(len(CLASS_NAMES)):
+            train_x.append(aug_train_tx(base_images[idx]))
+            train_y.append(idx)
+
+    test_x, test_y = [], []
+    for _ in range(16):
+        for idx in range(len(CLASS_NAMES)):
+            test_x.append(aug_train_tx(base_images[idx]))
+            test_y.append(idx)
+
+    train_ds = torch.utils.data.TensorDataset(torch.stack(train_x), torch.tensor(train_y))
+    test_ds = torch.utils.data.TensorDataset(torch.stack(test_x), torch.tensor(test_y))
+
+    train_loader = torch.utils.data.DataLoader(train_ds, batch_size=batch_size, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False)
+
+    return train_loader, test_loader
+

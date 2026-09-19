@@ -51,3 +51,4 @@ Thumbs.db
 
 # App temporary uploads
 uploads/temp_*
+data/
